@@ -9,7 +9,7 @@ spec:
         autoscaling.knative.dev/maxScale: "1"   # una sola instancia: el documento vive en memoria
     spec:
       containers:
-        - image: us-central1-docker.pkg.dev/rag-llamaindex-fastapi-nextjs/repo-rag-fastapi/image-rag-fastapi:v2
+        - image: us-central1-docker.pkg.dev/rag-llamaindex-fastapi-nextjs/repo-rag-fastapi/image-rag-fastapi:v3
           env:
             - name: OPENAI_API_KEY
               valueFrom:

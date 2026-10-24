@@ -1,6 +1,6 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'us-central1-docker.pkg.dev/rag-llamaindex-fastapi-nextjs/repo-rag-fastapi/image-rag-fastapi:v2', '.']
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/rag-llamaindex-fastapi-nextjs/repo-rag-fastapi/image-rag-fastapi:v3', '.']
 
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'us-central1-docker.pkg.dev/rag-llamaindex-fastapi-nextjs/repo-rag-fastapi/image-rag-fastapi:v2']
+    args: ['push', 'us-central1-docker.pkg.dev/rag-llamaindex-fastapi-nextjs/repo-rag-fastapi/image-rag-fastapi:v3']

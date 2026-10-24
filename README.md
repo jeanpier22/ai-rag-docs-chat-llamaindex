@@ -17,6 +17,7 @@ de su contenido e indican **de qué archivo y página** sale cada fuente.
   (no se regeneran los embeddings de los demás).
 - 🗑️ **Eliminar documentos** de forma individual, con confirmación.
 - 🔒 **API protegida** con clave; la clave **nunca llega al navegador**.
+- 🚦 **Rate limiting por visitante** (20 preguntas y 10 subidas por hora) para evitar abusos.
 - 💸 **Costos mínimos**: `gpt-5.4-nano` + `text-embedding-3-small`, y despliegue que escala a cero.
 
 ## 🏗️ Arquitectura
@@ -71,6 +72,28 @@ frontend/
 └── lib/                     # cliente del backend y tipos
 ```
 
+## 🔐 Seguridad y protección contra abusos
+
+La demo es pública, así que la seguridad está en capas, siempre del lado del servidor:
+
+| Capa | Dónde | Qué protege |
+|------|-------|-------------|
+| **API key** (`X-API-Key`) | Vercel la envía, FastAPI la verifica con `secrets.compare_digest` | Nadie puede usar el backend directamente sin pasar por el frontend |
+| **Secretos fuera del código** | Secret Manager (Cloud Run) y variables *Secret* (Vercel) | Las claves no están en el repo ni en la imagen Docker ni en el navegador |
+| **Rate limiting por IP** | FastAPI (`backend/app/main.py`) | Máximo **20 preguntas** y **10 subidas** por hora por visitante → `429 Too Many Requests` |
+| **Límites de contenido** | FastAPI | Máximo 10 documentos, 10 MB por archivo, solo PDF/TXT/MD |
+| **Escalado acotado** | Cloud Run (`maxScale: 1`) | El servicio no se multiplica ante un pico de tráfico |
+| **Tope de gasto** | Presupuesto de Google Cloud con límite de inversión | Cloud Run se pausa si se supera el presupuesto |
+
+**¿Cómo se conoce la IP del visitante?** Las peticiones llegan al backend desde los servidores
+de Vercel, así que las rutas `/api/*` de Next.js reenvían la IP real en la cabecera `X-Client-IP`.
+El backend solo confía en esa cabecera si la petición trae una API key válida. El contador vive en
+memoria, lo que funciona porque Cloud Run corre con una sola instancia; con varias instancias se
+usaría Redis.
+
+Los límites se pueden ajustar con variables de entorno: `RATE_LIMIT_QUERIES`, `RATE_LIMIT_UPLOADS`
+y `RATE_LIMIT_WINDOW_SECONDS`.
+
 ## 🔌 API del backend
 
 Todos los endpoints (menos `/health`) exigen la cabecera `X-API-Key`.
@@ -83,6 +106,18 @@ Todos los endpoints (menos `/health`) exigen la cabecera `X-API-Key`.
 | DELETE | `/documents/{name}`  | Quita un documento del índice                        |
 | DELETE | `/documents`         | Quita todos los documentos                           |
 | POST   | `/query`             | Pregunta sobre los documentos: `{"question": "..."}` |
+
+Ejemplo:
+
+```bash
+curl -X POST https://<tu-servicio>.run.app/query \
+  -H "X-API-Key: <clave>" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "¿De qué trata el documento?"}'
+```
+
+Respuestas de error: `401` (API key inválida), `409` (no hay documentos), `429` (límite de
+peticiones alcanzado, con cabecera `Retry-After`).
 
 Documentación interactiva (Swagger) en `/docs`.
 
@@ -122,7 +157,15 @@ gcloud run services set-iam-policy servicio-rag-fastapi gcr-service-policy.yaml 
 ```
 
 Las claves se leen de Secret Manager (`OPENAI_API_KEY` y `RAG_API_KEY`). Para una versión nueva,
-cambia la etiqueta de la imagen (`v2` → `v3`) en `cloudbuild.yaml` y `service.yaml`.
+cambia la etiqueta de la imagen (por ejemplo `v3` → `v4`) en `cloudbuild.yaml` y `service.yaml`.
+
+### Versiones
+
+| Versión | Cambios |
+|---------|---------|
+| `v1` | RAG con un documento a la vez |
+| `v2` | Varios documentos, indexación incremental y fuentes con nombre de archivo |
+| `v3` | Rate limiting por visitante |
 
 ### Frontend → Vercel
 

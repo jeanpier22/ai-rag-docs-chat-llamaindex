@@ -5,12 +5,15 @@ frontend (en este proyecto, Next.js en Vercel) pueda usarla. Admite varios
 documentos a la vez: las preguntas se responden buscando en todos ellos.
 """
 
+import math
 import os
 import secrets
 import threading
+import time
+from collections import defaultdict, deque
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
 from app.rag import (
@@ -45,6 +48,11 @@ ALLOWED_EXTENSIONS = {".pdf", ".txt", ".md"}
 MAX_FILE_MB = 10
 MAX_DOCUMENTS = 10
 
+# Rate limiting: máximo de peticiones por IP en una ventana de tiempo (protege el gasto en OpenAI)
+RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "3600"))
+RATE_LIMIT_QUERIES = int(os.getenv("RATE_LIMIT_QUERIES", "20"))
+RATE_LIMIT_UPLOADS = int(os.getenv("RATE_LIMIT_UPLOADS", "10"))
+
 # Estado en memoria: un solo índice con todos los documentos.
 # documents: nombre del archivo -> información + ids de sus partes en el índice
 state = {"index": None, "documents": {}}
@@ -57,6 +65,46 @@ def require_api_key(x_api_key: str = Header(default="")):
     """Rechaza las peticiones que no traen la clave correcta en la cabecera X-API-Key."""
     if not secrets.compare_digest(x_api_key, API_KEY):
         raise HTTPException(status_code=401, detail="API key inválida")
+
+
+# Historial de peticiones por (tipo, IP). Vive en memoria: funciona porque Cloud Run
+# corre con una sola instancia (maxScale: 1). Con varias, haría falta Redis.
+_request_log = defaultdict(deque)
+_rate_lock = threading.Lock()
+
+
+def client_ip(request: Request):
+    """IP real del visitante.
+
+    El frontend la envía en X-Client-IP. Solo se confía en ella porque la petición
+    ya pasó la verificación de la API key (es decir, viene de nuestro frontend).
+    """
+    forwarded = request.headers.get("x-client-ip") or request.headers.get("x-forwarded-for", "")
+    ip = forwarded.split(",")[0].strip()
+    return ip or (request.client.host if request.client else "desconocida")
+
+
+def rate_limit(bucket, limit):
+    """Dependencia que permite como máximo `limit` peticiones por IP en la ventana de tiempo."""
+
+    def check(request: Request):
+        now = time.monotonic()
+        key = (bucket, client_ip(request))
+        with _rate_lock:
+            log = _request_log[key]
+            # Olvidar las peticiones que ya salieron de la ventana
+            while log and now - log[0] >= RATE_LIMIT_WINDOW_SECONDS:
+                log.popleft()
+            if len(log) >= limit:
+                retry_after = max(1, math.ceil(RATE_LIMIT_WINDOW_SECONDS - (now - log[0])))
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Alcanzaste el límite de {limit} por hora. Intenta de nuevo en {math.ceil(retry_after / 60)} minutos.",
+                    headers={"Retry-After": str(retry_after)},
+                )
+            log.append(now)
+
+    return check
 
 
 class QueryRequest(BaseModel):
@@ -93,7 +141,7 @@ def list_documents():
     return {"documents": document_list()}
 
 
-@app.post("/documents", dependencies=[Depends(require_api_key)])
+@app.post("/documents", dependencies=[Depends(require_api_key), Depends(rate_limit("uploads", RATE_LIMIT_UPLOADS))])
 def upload_documents(files: list[UploadFile] = File(...)):
     """Agrega uno o varios documentos al índice.
 
@@ -154,7 +202,7 @@ def delete_all_documents():
     return {"documents": []}
 
 
-@app.post("/query", dependencies=[Depends(require_api_key)])
+@app.post("/query", dependencies=[Depends(require_api_key), Depends(rate_limit("queries", RATE_LIMIT_QUERIES))])
 def query(body: QueryRequest):
     """Responde una pregunta buscando en todos los documentos y devuelve las fuentes usadas."""
     question = body.question.strip()
