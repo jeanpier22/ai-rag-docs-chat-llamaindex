@@ -1,0 +1,14 @@
+meta:
+  name: rag-basico-llamaindex-model-config
+  version: 1.0.0
+  description: Configuración del LLM y del modelo de embeddings usados por el RAG
+  updated_at: 2026-10-23
+
+llm:
+  provider: openai
+  model: gpt-5.4-nano
+  temperature: 0.4
+
+embedding:
+  provider: openai
+  model: text-embedding-3-small

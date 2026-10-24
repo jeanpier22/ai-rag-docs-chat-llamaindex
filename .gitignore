@@ -1,0 +1,14 @@
+# Secretos
+.env
+.env.local
+!.env.example
+
+# Backend
+__pycache__/
+backend/storage/
+
+# Frontend
+node_modules/
+.next/
+.vercel/
+next-env.d.ts

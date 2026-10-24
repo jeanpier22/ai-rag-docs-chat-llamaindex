@@ -1,0 +1,7 @@
+llama-index
+llama-index-readers-file
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+pyyaml

@@ -1,0 +1,243 @@
+:root {
+  --bg: #0e1117;
+  --panel: #161a23;
+  --panel-2: #1d2230;
+  --border: rgba(255, 255, 255, 0.1);
+  --text: #e6e8ee;
+  --muted: #9aa1b2;
+  --primary: #4f6bed;
+  --primary-hover: #3f59d6;
+  --danger: #ef4444;
+  --danger-strong: #dc2626;
+  --radius: 12px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  /* Ocultar la línea parpadeante al hacer clic en textos que no se editan
+     (aparece con la "navegación con cursor" del navegador, tecla F7) */
+  caret-color: transparent;
+}
+
+/* ...pero mantenerla donde sí se escribe */
+input, textarea { caret-color: var(--text); }
+
+button { font: inherit; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* ===================== Layout ===================== */
+.app { display: flex; height: 100vh; }
+
+.sidebar {
+  width: 310px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+.sidebar h2 { font-size: 1.1rem; margin: 0; }
+.sidebar h2 .count { color: var(--muted); font-weight: 400; }
+.sidebar-footer { margin-top: auto; color: var(--muted); font-size: 0.8rem; }
+
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+@media (max-width: 760px) {
+  .app { flex-direction: column; height: auto; min-height: 100vh; }
+  .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+  .sidebar-footer { display: none; }
+}
+
+/* ===================== Sidebar ===================== */
+.dropzone {
+  display: block;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 22px 14px;
+  text-align: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.dropzone:hover, .dropzone.dragging { border-color: var(--primary); background: rgba(79, 107, 237, 0.08); }
+.dropzone strong { color: var(--text); display: block; margin-bottom: 4px; }
+.dropzone input { display: none; }
+
+.doc-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  padding: 12px;
+}
+.doc-card-row { display: flex; align-items: center; gap: 10px; }
+.doc-card-info { flex: 1; min-width: 0; }
+.doc-card-name { font-weight: 600; word-break: break-word; }
+.doc-card-meta { color: var(--muted); font-size: 0.82rem; }
+.doc-card details { margin-top: 10px; font-size: 0.85rem; }
+.doc-card summary { cursor: pointer; color: var(--muted); }
+.doc-card pre {
+  white-space: pre-wrap;
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+.icon-btn-danger {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  border-radius: 10px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.icon-btn-danger:hover { background: rgba(239, 68, 68, 0.12); border-color: var(--danger); }
+
+.btn {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+.btn:hover:not(:disabled) { border-color: var(--primary); }
+.btn-danger { background: var(--danger-strong); border-color: var(--danger-strong); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: #b91c1c; border-color: #b91c1c; }
+
+.status { color: var(--muted); font-size: 0.88rem; display: flex; align-items: center; gap: 8px; }
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===================== Chat ===================== */
+.chat { flex: 1; overflow-y: auto; padding: 32px 20px 12px; }
+.chat-inner { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+.hero h1 { font-size: 1.9rem; margin: 0 0 4px; }
+.hero p { color: var(--muted); margin: 0; }
+
+.empty {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  color: var(--muted);
+}
+
+.suggestions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.suggestion {
+  text-align: left;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+}
+.suggestion:hover { border-color: var(--primary); }
+
+.message { display: flex; gap: 12px; align-items: flex-start; }
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--panel-2);
+}
+.message.user .avatar { background: var(--primary); }
+.bubble { flex: 1; min-width: 0; padding-top: 4px; }
+.bubble p:first-child { margin-top: 0; }
+.bubble p:last-child { margin-bottom: 0; }
+.message.error .bubble { color: #fca5a5; }
+
+.sources { margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
+.sources summary { cursor: pointer; color: var(--muted); font-size: 0.88rem; }
+.source { margin-top: 10px; font-size: 0.85rem; }
+.source-meta { font-weight: 600; }
+.source-text { color: var(--muted); white-space: pre-wrap; }
+
+.composer { border-top: 1px solid var(--border); padding: 14px 20px 18px; }
+.composer form { max-width: 780px; margin: 0 auto; display: flex; gap: 10px; }
+.composer input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+.composer input:focus { border-color: var(--primary); }
+.composer button {
+  padding: 0 18px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--primary);
+  color: #fff;
+}
+.composer button:hover:not(:disabled) { background: var(--primary-hover); }
+
+/* ===================== Diálogo y avisos ===================== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 50;
+}
+.dialog {
+  width: 100%;
+  max-width: 420px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.dialog h3 { margin: 0 0 8px; }
+.dialog p { margin: 0 0 6px; }
+.dialog .muted { color: var(--muted); font-size: 0.88rem; }
+.dialog-actions { display: flex; gap: 10px; margin-top: 18px; }
+.dialog-actions .btn { display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+.toast {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  z-index: 60;
+  max-width: calc(100vw - 44px);
+}
+.toast.error { border-color: rgba(239, 68, 68, 0.6); }
